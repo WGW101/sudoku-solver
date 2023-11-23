@@ -1,0 +1,17 @@
+[project]
+name = "sudoku-solver"
+version = "0.1"
+authors = [
+    {name = "Guillaume Bono", email = "bonoguillaume@hotmail.fr"}
+]
+dependencies = [
+    "numpy"
+]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = {find = {where = ["src"]}}
+package-data = {sudoku = ["py.typed"]}
