@@ -70,6 +70,23 @@ class SudokuGrid:
         cp._valid = self._valid.copy()
         return cp
 
+    def solve(self) -> bool:
+        try:
+            self._loop_uniq_valid_choices()
+        except ValueError:
+            return False
+        if self._is_solved():
+            return True
+        for v, i, j in self._branch_less_vals():
+            cp = self.copy()
+            cp.write(v, i, j, unsafe=False)
+            if cp.solve():
+                self._grid = cp._grid
+                self._valid = cp._valid
+                return True
+        else:
+            return False
+
     def _reset_valid(self) -> None:
         self._valid.fill(True)
         blk_view = self._grid.reshape(3, 3, 3, 3)
@@ -134,3 +151,19 @@ class SudokuGrid:
         while w_cnt := self._write_uniq_valid_choices():
             w_tot += w_cnt
         return w_tot
+
+    def _branch_less_vals(self) -> Iterator[tuple[int, int, int]]:
+        ii, jj = np.nonzero(self._grid == 0)
+        whr = self._valid[:, ii, jj].sum(0).argmin()
+        i, j = ii[whr], jj[whr]
+        vv = np.flatnonzero(self._valid[1:, i, j]) + 1
+        yield from ((v, i, j) for v in vv)
+        # cnts = self._valid[:, ii, jj].sum(0)
+        # whr = np.flatnonzero(cnts == cnts.min())
+        # ii, jj = ii[whr], jj[whr]
+        # perm, vv = np.nonzero(self._valid[1:, ii, jj].T)
+        # vv += 1
+        # yield from zip(vv, ii[perm], jj[perm])
+
+    def _is_solved(self) -> bool:
+        return np.all(self._grid > 0)

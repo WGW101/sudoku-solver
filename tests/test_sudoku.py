@@ -19,3 +19,6 @@ if __name__ == "__main__":
 
     cp = g.copy()
     assert str(cp) == expect_3
+
+    g.solve()
+    print(g)
