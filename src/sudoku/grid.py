@@ -3,7 +3,11 @@ from typing import Iterator
 from numpy.typing import ArrayLike
 from numpy.random import Generator
 
+import logging
 import numpy as np
+
+
+logger = logging.getLogger(__name__)
 
 
 class SudokuGrid:
@@ -20,12 +24,12 @@ class SudokuGrid:
         )
 
     @classmethod
-    def generate(
-        cls, seed: int | None = None, *, rng: Generator | None = None
-    ) -> "SudokuGrid":
-        if rng is None or seed is not None:
-            rng = np.random.default_rng(seed)
+    def generate(cls, seed: int | None = None) -> "SudokuGrid":
+        if seed is not None:
+            SudokuGrid._rng = np.random.default_rng(seed)
         raise NotImplementedError("WIP")
+
+    _rng: Generator = np.random.default_rng()
 
     _grid: np.ndarray
     _valid: np.ndarray
@@ -46,6 +50,15 @@ class SudokuGrid:
             )
             for blocks_row in self._grid.reshape(3, 3, 3, 3)
         )
+
+    def save(self, path: PathLike, force: bool = False) -> bool:
+        try:
+            with open(path, "wt" if force else "xt") as f:
+                f.write(str(self))
+            return True
+        except OSError as e:
+            logger.error(e)
+            return False
 
     def write(self, v: int | str, i: int, j: int, *, unsafe: bool = True) -> bool:
         if isinstance(v, str):
@@ -86,6 +99,63 @@ class SudokuGrid:
                 return True
         else:
             return False
+
+    def hint(self, level: int = 1) -> str:
+        hints = [(0, v, i, j) for v, i, j in self._iter_uniq_valid_vals()]
+        hints.extend((1, v, i, j) for v, i, j in self._iter_uniq_valid_rows())
+        hints.extend((2, v, i, j) for v, i, j in self._iter_uniq_valid_cols())
+        hints.extend((3, v, i, j) for v, i, j in self._iter_uniq_valid_blk_cells())
+        kind, v, i, j = SudokuGrid._rng.choice(hints)
+        if level < 1:
+            if kind == 0:
+                return "A cell can only contain one value."
+            elif kind == 1:
+                return "A value in a column can only go in one row."
+            elif kind == 2:
+                return "A value in a row can only go in one column."
+            elif kind == 3:
+                return "A value in a block can only go in a cell."
+        elif level == 1:
+            if kind == 0:
+                return f"A cell can only contain value {v}."
+            elif kind == 1:
+                return f"A value in a column can only go in row {i}."
+            elif kind == 2:
+                return f"A value in a row can only go in column {j}."
+            elif kind == 3:
+                cell = i % 3, j % 3
+                return f"A value in a block can only go in cell {cell}."
+        elif level == 2:
+            if kind == 0:
+                blk = i // 3, j // 3
+                return f"A cell in block {blk} can only contain one value."
+            elif kind == 1:
+                return f"A value in column {j} can only go in one row."
+            elif kind == 2:
+                return f"A value in row {i} can only go in one column."
+            elif kind == 3:
+                blk = i // 3, j // 3
+                return f"A value in block {blk} can only go in one cell."
+        elif level == 3:
+            if kind == 0:
+                return f"Cell ({i}, {j}) can only contain one value."
+            elif kind == 1:
+                return f"Value {v} in column {j} can only go in one row."
+            elif kind == 2:
+                return f"Value {v} in row {i} can only go in one column."
+            elif kind == 3:
+                blk = i // 3, j // 3
+                return f"Value {v} in block {blk} can only go in one cell."
+        else:
+            if kind == 0:
+                return f"Cell ({i}, {j}) can only contain value {v}."
+            elif kind == 1:
+                return f"Value {v} in column {j} can only go in row {i}."
+            elif kind == 2:
+                return f"Value {v} in row {i} can only go in column {j}."
+            elif kind == 3:
+                blk, cell = zip(divmod(i, 3), divmod(j, 3))
+                return f"Value {v} in block {blk} can only go in cell {cell}."
 
     def _reset_valid(self) -> None:
         self._valid.fill(True)
