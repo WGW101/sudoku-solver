@@ -12,13 +12,29 @@ logger = logging.getLogger(__name__)
 
 class SudokuGrid:
     @classmethod
-    def read_txt(cls, path: PathLike) -> "SudokuGrid":
+    def from_txt_file(cls, path: PathLike) -> "SudokuGrid":
         with open(path) as f:
             txt_data = f.read()
+        try:
+            return cls.from_raw_str(txt_data)
+        except ValueError:
+            return cls.from_pretty_str(txt_data)
+
+    @classmethod
+    def from_raw_str(cls, raw_str: str) -> "SudokuGrid":
+        return cls(
+            [
+                [0 if v == "." else int(v) for v in raw_str[9 * i : 9 * (i + 1)]]
+                for i in range(9)
+            ]
+        )
+
+    @classmethod
+    def from_pretty_str(cls, pretty_str: str) -> "SudokuGrid":
         return cls(
             [
                 [0 if v == "." else int(v) for v in l.split() if v != "|"]
-                for l in txt_data.splitlines()
+                for l in pretty_str.splitlines()
                 if not l.startswith("-")
             ]
         )
@@ -105,6 +121,8 @@ class SudokuGrid:
         hints.extend((1, v, i, j) for v, i, j in self._iter_uniq_valid_rows())
         hints.extend((2, v, i, j) for v, i, j in self._iter_uniq_valid_cols())
         hints.extend((3, v, i, j) for v, i, j in self._iter_uniq_valid_blk_cells())
+        if not hints:
+            return "No basic hint available!"
         kind, v, i, j = SudokuGrid._rng.choice(hints)
         if level < 1:
             if kind == 0:
@@ -113,7 +131,7 @@ class SudokuGrid:
                 return "A value in a column can only go in one row."
             elif kind == 2:
                 return "A value in a row can only go in one column."
-            elif kind == 3:
+            else:
                 return "A value in a block can only go in a cell."
         elif level == 1:
             if kind == 0:
@@ -122,7 +140,7 @@ class SudokuGrid:
                 return f"A value in a column can only go in row {i}."
             elif kind == 2:
                 return f"A value in a row can only go in column {j}."
-            elif kind == 3:
+            else:
                 cell = i % 3, j % 3
                 return f"A value in a block can only go in cell {cell}."
         elif level == 2:
@@ -133,7 +151,7 @@ class SudokuGrid:
                 return f"A value in column {j} can only go in one row."
             elif kind == 2:
                 return f"A value in row {i} can only go in one column."
-            elif kind == 3:
+            else:
                 blk = i // 3, j // 3
                 return f"A value in block {blk} can only go in one cell."
         elif level == 3:
@@ -143,7 +161,7 @@ class SudokuGrid:
                 return f"Value {v} in column {j} can only go in one row."
             elif kind == 2:
                 return f"Value {v} in row {i} can only go in one column."
-            elif kind == 3:
+            else:
                 blk = i // 3, j // 3
                 return f"Value {v} in block {blk} can only go in one cell."
         else:
@@ -153,7 +171,7 @@ class SudokuGrid:
                 return f"Value {v} in column {j} can only go in row {i}."
             elif kind == 2:
                 return f"Value {v} in row {i} can only go in column {j}."
-            elif kind == 3:
+            else:
                 blk, cell = zip(divmod(i, 3), divmod(j, 3))
                 return f"Value {v} in block {blk} can only go in cell {cell}."
 
@@ -236,4 +254,4 @@ class SudokuGrid:
         # yield from zip(vv, ii[perm], jj[perm])
 
     def _is_solved(self) -> bool:
-        return np.all(self._grid > 0)
+        return np.all(self._grid > 0).item()
