@@ -67,7 +67,10 @@ class SudokuGrid:
             for blocks_row in self._grid.reshape(3, 3, 3, 3)
         )
 
-    def save(self, path: PathLike, force: bool = False) -> bool:
+    def is_valid(self) -> bool:
+        return np.all((self._grid > 0) | (self._valid[1:].sum(0) > 0)).item()
+
+    def save(self, path: PathLike | str, force: bool = False) -> bool:
         try:
             with open(path, "wt" if force else "xt") as f:
                 f.write(str(self))
@@ -197,7 +200,8 @@ class SudokuGrid:
 
     def _iter_uniq_valid_vals(self) -> Iterator[tuple[int, int, int]]:
         ii, jj = np.nonzero(self._valid[1:].sum(0) == 1)
-        vv, perm = np.nonzero(self._valid[:, ii, jj])
+        vv, perm = np.nonzero(self._valid[1:, ii, jj])
+        vv += 1
         yield from zip(vv, ii[perm], jj[perm])
 
     def _iter_uniq_valid_rows(self) -> Iterator[tuple[int, int, int]]:
@@ -242,16 +246,16 @@ class SudokuGrid:
 
     def _branch_less_vals(self) -> Iterator[tuple[int, int, int]]:
         ii, jj = np.nonzero(self._grid == 0)
-        whr = self._valid[:, ii, jj].sum(0).argmin()
-        i, j = ii[whr], jj[whr]
-        vv = np.flatnonzero(self._valid[1:, i, j]) + 1
-        yield from ((v, i, j) for v in vv)
         # cnts = self._valid[:, ii, jj].sum(0)
         # whr = np.flatnonzero(cnts == cnts.min())
+        whr = self._valid[:, ii, jj].sum(0).argmin()  # TODO: Better var selection
         # ii, jj = ii[whr], jj[whr]
-        # perm, vv = np.nonzero(self._valid[1:, ii, jj].T)
+        i, j = ii[whr], jj[whr]
+        vv = np.flatnonzero(self._valid[1:, i, j]) + 1
+        # vv, perm = np.nonzero(self._valid[1:, ii, jj])
         # vv += 1
         # yield from zip(vv, ii[perm], jj[perm])
+        yield from ((v, i, j) for v in vv)
 
     def _is_solved(self) -> bool:
         return np.all(self._grid > 0).item()
