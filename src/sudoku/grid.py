@@ -1,5 +1,5 @@
 from os import PathLike
-from typing import Iterator
+from typing import Iterator, ClassVar
 from numpy.typing import ArrayLike
 from numpy.random import Generator
 
@@ -45,7 +45,7 @@ class SudokuGrid:
             SudokuGrid._rng = np.random.default_rng(seed)
         raise NotImplementedError("WIP")
 
-    _rng: Generator = np.random.default_rng()
+    _rng: ClassVar[Generator] = np.random.default_rng()
 
     _grid: np.ndarray
     _valid: np.ndarray

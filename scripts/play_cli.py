@@ -34,6 +34,8 @@ def main(args: Namespace) -> None:
                 grid.clear()
             case ["h", l, *_]:
                 print(grid.hint(int(l)))
+            case ["f", *_]:
+                grid.solve()
             case ["v", *_]:
                 print(f"Grid is {'valid.' if grid.is_valid() else 'INVALID!'}")
             case ["?", *_]:
@@ -47,6 +49,7 @@ def main(args: Namespace) -> None:
                         - e<ij>: Erase cell at i,j
                         - c: Clear grid
                         - h<l>: Get hint at level l
+                        - f: Fill with solution
                         - v: Check grid validity
                         - ?: Show this usage"""
                     )
