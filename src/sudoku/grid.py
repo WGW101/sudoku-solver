@@ -178,6 +178,10 @@ class SudokuGrid:
                 blk, cell = zip(divmod(i, 3), divmod(j, 3))
                 return f"Value {v} in block {blk} can only go in cell {cell}."
 
+    def possible_values(self, i: int, j: int) -> set[int]:
+        vv = np.flatnonzero(self._valid[1:, i, j]) + 1
+        return {int(v) for v in vv}
+
     def _reset_valid(self) -> None:
         self._valid.fill(True)
         blk_view = self._grid.reshape(3, 3, 3, 3)
@@ -248,7 +252,8 @@ class SudokuGrid:
         ii, jj = np.nonzero(self._grid == 0)
         # cnts = self._valid[:, ii, jj].sum(0)
         # whr = np.flatnonzero(cnts == cnts.min())
-        whr = self._valid[:, ii, jj].sum(0).argmin()  # TODO: Better var selection
+        whr = self._valid[:, ii, jj].sum(0).argmin()
+        # TODO: Better var selection: min domain, max domain, rand?
         # ii, jj = ii[whr], jj[whr]
         i, j = ii[whr], jj[whr]
         vv = np.flatnonzero(self._valid[1:, i, j]) + 1
